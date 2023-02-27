@@ -24,7 +24,7 @@ pipeline {
          stage('Push Docker Image') 
              {
          steps {
-                 // Log in to Docker Hub (replace <DOCKERHUB_USERNAME> and <DOCKERHUB_PASSWORD> with your credentials)
+                 // Log in to Docker Hub 
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKERHUB_USERNAME', passwordVariable: 'DOCKERHUB_PASSWORD')])
                  {
                     sh 'docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD'
@@ -33,6 +33,37 @@ pipeline {
                 
                 sh 'docker push gradproj/nf_udm:latest'
              }
+
+
+          stage('Deploy UDM to Kubernetes') {
+            environment {
+                // Set the Docker image name and tag to deploy
+                DOCKER_IMAGE = "gradproj/nf_udm:latest"
+            }
+
+            steps {
+                // Deploy the UDM Helm chart to Kubernetes
+                sh "helm upgrade --install udm towards5gs-helm/udm --set image.repository=$DOCKER_IMAGE"
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                // Run tests against the deployed UDM instance
+                sh "curl http://<UDM_IP>:<UDM_PORT>/health"
+            }
+        }
+
+        stage('Clean Up') {
+            steps {
+                // Remove the UDM deployment from Kubernetes
+                sh "helm uninstall udm"
+            }
+        }
+
+
+
+
 
              }
      }     
