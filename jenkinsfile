@@ -1,0 +1,46 @@
+pipeline {
+   agent any
+
+   stages {
+      stage('Verify Branch') 
+       {
+         steps {
+            echo "$GIT_BRANCH"
+               }
+        }
+
+         stage('Build Docker Imageh') 
+             {
+         steps {
+               // Build the Docker image
+                sh 'docker build -t udm:latest gradproj/nf_udm'
+                
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKERHUB_USERNAME', passwordVariable: 'DOCKERHUB_PASSWORD')]) {
+                    sh 'docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD'
+               }
+             }
+             }
+
+         stage('Push Docker Image') 
+             {
+         steps {
+                 // Log in to Docker Hub 
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKERHUB_USERNAME', passwordVariable: 'DOCKERHUB_PASSWORD')])
+                 {
+                    sh 'docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD'
+                }
+
+                
+                sh 'docker push gradproj/nf_udm:latest'
+             }
+
+
+         
+
+
+
+
+
+             }
+     }     
+}
