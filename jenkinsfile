@@ -1,27 +1,27 @@
 pipeline {
-   agent any
+    agent any
 
-   stages {
-      stage('Verify Branch') 
+    stages {
+
+    stage('Verify Branch') 
        {
          steps {
             echo "$GIT_BRANCH"
                }
         }
 
-         stage('Build Docker Imageh') 
+    stage('Build Docker Imageh') 
              {
          steps {
                // Build the Docker image
-                sh 'docker build -t udm:latest gradproj/nf_udm'
+                sh 'docker build -t nf_udm:latest towards5gs-helm/udm'
                 
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKERHUB_USERNAME', passwordVariable: 'DOCKERHUB_PASSWORD')]) {
-                    sh 'docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD'
-               }
+            
              }
              }
 
-         stage('Push Docker Image') 
+
+    stage('Push Docker Image') 
              {
          steps {
                  // Log in to Docker Hub 
@@ -31,16 +31,46 @@ pipeline {
                 }
 
                 
+                sh 'docker tag nf_udm:latest gradproj/nf_udm:latest'
                 sh 'docker push gradproj/nf_udm:latest'
              }
 
 
-         
+        stage('Build Docker Image') {
+            steps {
+                
 
 
+                // Push the Docker image to Docker Hub (replace <DOCKERHUB_USERNAME> with your username)
+                sh 'docker tag nf_udm:latest gradproj/nf_udm:latest'
+                sh 'docker push gradproj/nf_udm:latest'
+            }
+        }
 
+        stage('Deploy UDM to Kubernetes') {
+            environment {
+                // Set the Docker image name and tag to deploy
+                DOCKER_IMAGE = "gradproj/nf_udm:latest"
+            }
 
+            steps {
+                // Deploy the UDM Helm chart to Kubernetes
+                sh "helm upgrade --install udm towards5gs-helm/udm --set image.repository=$DOCKER_IMAGE"
+            }
+        }
 
-             }
-     }     
+        stage('Run Tests') {
+            steps {
+                // Run tests against the deployed UDM instance
+                sh "curl http://<UDM_IP>:<UDM_PORT>/health"
+            }
+        }
+
+        stage('Clean Up') {
+            steps {
+                // Remove the UDM deployment from Kubernetes
+                sh "helm uninstall udm"
+            }
+        }
+    }
 }
