@@ -36,16 +36,7 @@ pipeline {
              }
 
 
-        stage('Build Docker Image') {
-            steps {
-                
-
-
-                // Push the Docker image to Docker Hub (replace <DOCKERHUB_USERNAME> with your username)
-                sh 'docker tag nf_udm:latest gradproj/nf_udm:latest'
-                sh 'docker push gradproj/nf_udm:latest'
-            }
-        }
+       
 
         stage('Deploy UDM to Kubernetes') {
             environment {
